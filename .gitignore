@@ -1,0 +1,7 @@
+# .gitignore
+.env
+__pycache__/
+venv/
+.venv/
+timescaledb-data/
+*.log

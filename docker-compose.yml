@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg15-latest
+    container_name: volatility_db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/home/postgres/pgdata/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql # Auto-runs on first boot
+    restart: unless-stopped
+
+volumes:
+  timescaledb-data:
