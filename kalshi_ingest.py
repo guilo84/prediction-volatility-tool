@@ -66,10 +66,20 @@ async def insert_trade(pool, trade_data):
         ON CONFLICT (trade_id, time) DO NOTHING;
     """
     ts = datetime.fromtimestamp(trade_data['ts'], tz=timezone.utc)
+    
+    # Convert Kalshi's V2 fixed-point strings into integers
+    price_cents = round(float(trade_data['yes_price_dollars']) * 100)
+    contract_count = int(float(trade_data['count_fp']))
+    
     async with pool.acquire() as connection:
         await connection.execute(
-            query, ts, trade_data['market_ticker'], trade_data['trade_id'],
-            trade_data['price'], trade_data['count'], trade_data['taker_side']
+            query, 
+            ts, 
+            trade_data['market_ticker'], 
+            trade_data['trade_id'],
+            price_cents,
+            contract_count, 
+            trade_data['taker_side']
         )
 
 async def connect_kalshi_ws(pool):
@@ -97,7 +107,9 @@ async def connect_kalshi_ws(pool):
                 if data.get('type') == 'trade':
                     trade_info = data.get('msg')
                     await insert_trade(pool, trade_info)
-                    print(f"Inserted trade: {trade_info['market_ticker']} @ {trade_info['price']}c")
+                    
+                    # Safely print using the new string formats
+                    print(f"Inserted trade: {trade_info['market_ticker']} @ ${trade_info['yes_price_dollars']} (Volume: {trade_info['count_fp']})")
                     
             except websockets.ConnectionClosed:
                 print("WebSocket connection closed. Reconnecting...")
