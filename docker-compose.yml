@@ -1,4 +1,3 @@
-
 services:
   timescaledb:
     image: timescale/timescaledb-ha:pg15-latest
@@ -8,11 +7,49 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5433:5432"
+      - "5433:5432" # Host:Container
     volumes:
       - timescaledb-data:/home/postgres/pgdata/data
-      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql # Auto-runs on first boot
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     restart: unless-stopped
+    networks:
+      - volatility_net
+
+  kalshi_ingest:
+    build: .
+    container_name: kalshi_ingest
+    command: python kalshi_ingest.py
+    env_file:
+      - .env
+    environment:
+      # Override the DB variables specifically for the Docker network
+      - DB_HOST=volatility_db
+      - DB_PORT=5432
+    depends_on:
+      - timescaledb
+    restart: unless-stopped
+    networks:
+      - volatility_net
+
+  poly_ingest:
+    build: .
+    container_name: poly_ingest
+    command: python polymarket_ingest.py
+    env_file:
+      - .env
+    environment:
+      # Override the DB variables specifically for the Docker network
+      - DB_HOST=volatility_db
+      - DB_PORT=5432
+    depends_on:
+      - timescaledb
+    restart: unless-stopped
+    networks:
+      - volatility_net
 
 volumes:
   timescaledb-data:
+
+networks:
+  volatility_net:
+    driver: bridge
