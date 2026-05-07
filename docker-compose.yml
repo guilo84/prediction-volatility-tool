@@ -16,7 +16,9 @@ services:
       - volatility_net
 
   kalshi_ingest:
-    build: .
+    build:
+      context: .
+      network: host
     container_name: kalshi_ingest
     command: python kalshi_ingest.py
     env_file:
